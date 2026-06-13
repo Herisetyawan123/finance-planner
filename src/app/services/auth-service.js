@@ -1,22 +1,21 @@
 const USERS_KEY = "finance_planner_users";
 
 export const authService = {
-    register: async (name, email, password) => {
+    register: async ({name, email, password}) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const users = JSON.parse(
-        localStorage.getItem(USERS_KEY) || "[]"
+            localStorage.getItem(USERS_KEY) || "[]"
         );
-
         if (users.some((u) => u.email === email)) {
-        throw new Error("Email sudah terdaftar");
+            throw new Error("Email sudah terdaftar");
         }
 
         const newUser = {
-        id: Date.now(),
-        name,
-        email,
-        password,
+            id: Date.now(),
+            name,
+            email,
+            password,
         };
 
         users.push(newUser);
@@ -43,11 +42,9 @@ export const authService = {
             u.email === email &&
             u.password === password
         );
-        console.log("Login attempt for email:", email);
-        console.log("Found user:", user);
-        console.log("All users in system:", users);
+       
         if (!user) {
-        throw new Error("Email atau password salah");
+            throw new Error("Email atau password salah");
         }
 
         return {

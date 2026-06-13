@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "../app/store/auth-store";
 import { authService } from "../app/services/auth-service";
+import { useNavigate } from "react-router-dom";
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -12,6 +13,7 @@ export default function AuthPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const loginStore = useAuthStore(
     (state) => state.login
@@ -36,7 +38,6 @@ export default function AuthPage() {
                     email,
                     password
                     );
-                consoe.log("Login successful, response:", response);
                 loginStore(
                     response.user,
                     response.token
@@ -44,21 +45,21 @@ export default function AuthPage() {
 
                 navigate("/");
             } else {
-            await authService.register({
-                name,
-                email,
-                password,
-            });
-            console.log("Registration successful, now logging in...");
+                await authService.register({
+                    name,
+                    email,
+                    password,
+                });
+                console.log("Registration successful, now logging in...");
 
-            alert(
-                "Registrasi berhasil. Silakan login."
-            );
+                alert(
+                    "Registrasi berhasil. Silakan login."
+                );
 
-            setIsLogin(true);
+                setIsLogin(true);
 
-            setName("");
-            setPassword("");
+                setName("");
+                setPassword("");
             }
         } catch (err) {
             setError(err.message);

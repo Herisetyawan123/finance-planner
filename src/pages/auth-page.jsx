@@ -1,197 +1,263 @@
 import { useState } from "react";
-import { useAuthStore } from "../app/store/auth-store";
-import { authService } from "../app/services/auth-service";
 import { useNavigate } from "react-router-dom";
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import Swal from "sweetalert2";
+
+import { useAuthStore } from "../app/store/auth-store";
+import { authService } from "../app/services/auth-service";
+import {
+    loginSchema,
+    registerSchema,
+} from "../app/schemas/auth-schema";
+
 export default function AuthPage() {
-    const [isLogin, setIsLogin] = useState(true);
-
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const navigate = useNavigate();
 
     const loginStore = useAuthStore(
-    (state) => state.login
+        (state) => state.login
     );
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        console.log("Submitting form with data:", {
-            name,
-            email,
-            password,
-            confirmPassword,
-        });
+    const [isLogin, setIsLogin] = useState(true);
 
-        setError("");
-        setLoading(true);
+    const loginForm = useForm({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
 
+    const registerForm = useForm({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+        },
+    });
+
+    const form = isLogin
+        ? loginForm
+        : registerForm;
+
+    const {
+        register,
+        handleSubmit,
+        formState: { isSubmitting },
+    } = form;
+
+    const onSubmit = async (data) => {
         try {
             if (isLogin) {
                 const response =
                     await authService.login(
-                    email,
-                    password
+                        data.email,
+                        data.password
                     );
+
                 loginStore(
                     response.user,
                     response.token
                 );
 
+                loginForm.reset();
+
                 navigate("/");
             } else {
                 await authService.register({
-                    name,
-                    email,
-                    password,
+                    name: data.name,
+                    email: data.email,
+                    password: data.password,
                 });
-                console.log("Registration successful, now logging in...");
 
-                alert(
-                    "Registrasi berhasil. Silakan login."
-                );
+                await Swal.fire({
+                    icon: "success",
+                    title: "Registrasi Berhasil",
+                    text: "Silakan login menggunakan akun Anda.",
+                    confirmButtonColor: "#10b981",
+                });
 
                 setIsLogin(true);
 
-                setName("");
-                setPassword("");
+                loginForm.reset({
+                    email: data.email,
+                    password: "",
+                });
+
+                registerForm.reset();
             }
         } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
+            Swal.fire({
+                icon: "error",
+                title: isLogin
+                    ? "Login Gagal"
+                    : "Registrasi Gagal",
 
-        console.log("Form submission completed");
-        console.log(error ? "Error: " + error : "No errors");
+                text:
+                    err.message ||
+                    "Terjadi kesalahan",
+
+                confirmButtonColor: "#10b981",
+            });
+        }
+    };
+
+    const onError = (errors) => {
+        const firstError =
+            Object.values(errors)[0];
+
+        if (!firstError) return;
+
+        Swal.fire({
+            icon: "error",
+            title: "Validasi Gagal",
+            text: firstError.message,
+            confirmButtonColor: "#10b981",
+        });
+    };
+
+    const handleToggleMode = () => {
+        loginForm.reset();
+        registerForm.reset();
+
+        setIsLogin((prev) => !prev);
     };
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
 
-            <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-                {isLogin ? "Masuk" : "Daftar"}
-            </h1>
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        {isLogin
+                            ? "Masuk"
+                            : "Daftar"}
+                    </h1>
 
-            <p className="text-gray-500 mt-2">
-                {isLogin
-                ? "Masuk ke akun Anda"
-                : "Buat akun baru"}
-            </p>
-            </div>
-
-            <form className="space-y-4">
-
-            {!isLogin && (
-                <div>
-                <label className="block text-sm font-medium mb-2">
-                    Nama Lengkap
-                </label>
-
-                <input
-                    type="text"
-                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Masukkan nama lengkap"
-                    value={name}
-                    onChange={(e) =>
-                    setName(e.target.value)
-                    }
-                />
+                    <p className="text-gray-500 mt-2">
+                        {isLogin
+                            ? "Masuk ke akun Anda"
+                            : "Buat akun baru"}
+                    </p>
                 </div>
-            )}
 
-            <div>
-                <label className="block text-sm font-medium mb-2">
-                Email
-                </label>
+                <form
+                    className="space-y-4"
+                    onSubmit={handleSubmit(
+                        onSubmit,
+                        onError
+                    )}
+                >
 
-                <input
-                type="email"
-                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="Masukkan email"
-                value={email}
-                onChange={(e) =>
-                    setEmail(e.target.value)
-                }
-                />
-            </div>
+                    {!isLogin && (
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Nama Lengkap
+                            </label>
 
-            <div>
-                <label className="block text-sm font-medium mb-2">
-                Password
-                </label>
+                            <input
+                                type="text"
+                                placeholder="Masukkan nama lengkap"
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                {...register("name")}
+                            />
+                        </div>
+                    )}
 
-                <input
-                type="password"
-                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(e) =>
-                    setPassword(e.target.value)
-                }
-                />
-            </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">
+                            Email
+                        </label>
 
-            {!isLogin && (
-                <div>
-                <label className="block text-sm font-medium mb-2">
-                    Konfirmasi Password
-                </label>
+                        <input
+                            type="email"
+                            placeholder="Masukkan email"
+                            className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            {...register("email")}
+                        />
+                    </div>
 
-                <input
-                    type="password"
-                    className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Konfirmasi password"
-                    value={confirmPassword}
-                    onChange={(e) =>
-                        setConfirmPassword(e.target.value)
-                    }
-                />
+                    <div>
+                        <label className="block text-sm font-medium mb-2">
+                            Password
+                        </label>
+
+                        <input
+                            type="password"
+                            placeholder="Masukkan password"
+                            className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            {...register("password")}
+                        />
+                    </div>
+
+                    {!isLogin && (
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Konfirmasi Password
+                            </label>
+
+                            <input
+                                type="password"
+                                placeholder="Konfirmasi password"
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                {...register(
+                                    "confirmPassword"
+                                )}
+                            />
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSubmitting
+                            ? "Memproses..."
+                            : isLogin
+                            ? "Masuk"
+                            : "Daftar"}
+                    </button>
+
+                </form>
+
+                <div className="mt-6 text-center text-sm">
+                    {isLogin ? (
+                        <>
+                            Belum punya akun?{" "}
+
+                            <button
+                                type="button"
+                                onClick={
+                                    handleToggleMode
+                                }
+                                className="text-emerald-600 font-medium hover:underline"
+                            >
+                                Daftar
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            Sudah punya akun?{" "}
+
+                            <button
+                                type="button"
+                                onClick={
+                                    handleToggleMode
+                                }
+                                className="text-emerald-600 font-medium hover:underline"
+                            >
+                                Masuk
+                            </button>
+                        </>
+                    )}
                 </div>
-            )}
 
-            <button
-                type="submit"
-                className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition"
-                onClick={handleSubmit}
-                disabled={loading}
-            >
-                {isLogin ? "Masuk" : "Daftar"}
-            </button>
-            </form>
-
-            <div className="mt-6 text-center text-sm">
-            {isLogin ? (
-                <>
-                Belum punya akun?{" "}
-                <button
-                    onClick={() => setIsLogin(false)}
-                    className="text-emerald-600 font-medium hover:underline"
-                >
-                    Daftar
-                </button>
-                </>
-            ) : (
-                <>
-                Sudah punya akun?{" "}
-                <button
-                    onClick={() => setIsLogin(true)}
-                    className="text-emerald-600 font-medium hover:underline"
-                >
-                    Masuk
-                </button>
-                </>
-            )}
             </div>
-
-        </div>
         </div>
     );
 }

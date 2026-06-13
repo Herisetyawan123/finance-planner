@@ -1,18 +1,80 @@
-# React + Vite
+# Finance Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Finance Planner adalah aplikasi dashboard keuangan pribadi berbasis React + Vite yang membantu Anda mengelola pengeluaran, tabungan, investasi, target keuangan, dan perencanaan bulanan secara lebih terstruktur.
 
-Currently, two official plugins are available:
+## Deskripsi Project
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Aplikasi ini dibuat untuk membantu pengguna:
+- memantau kondisi keuangan bulanan,
+- mencatat pengeluaran harian dan pengeluaran wajib,
+- melihat sisa dana, budget harian, dan kesehatan finansial,
+- mengatur tabungan, investasi, serta target keuangan,
+- memperoleh insight dan rekomendasi sederhana dari halaman analisis keuangan.
 
-## React Compiler
+## Fitur Utama
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- Dashboard keuangan bulanan
+- Catatan pengeluaran harian
+- Pengeluaran wajib dan tagihan
+- Perencanaan pemasukan dan pengeluaran bulanan
+- Kelola tabungan dan investasi
+- Target keuangan dengan progress tracking
+- Kalender keuangan
+- Halaman analisis AI / insight keuangan
 
-Note: This will impact Vite dev & build performances.
+## Teknologi yang Digunakan
 
-## Expanding the ESLint configuration
+- React 19
+- Vite
+- React Router DOM
+- Tailwind CSS
+- Lucide React
+- ESLint
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Struktur Project
+
+- src/pages/ — halaman utama aplikasi
+- src/components/ — komponen UI seperti kartu, chart, progress bar, sidebar
+- src/layouts/ — layout dashboard dan navigasi
+- src/utils/ — helper dan fungsi logika keuangan
+- src/constants/ — data navigasi dan konfigurasi
+
+## Cara Menjalankan
+
+1. Install dependency:
+   ```bash
+   npm install
+   ```
+
+2. Jalankan aplikasi di mode development:
+   ```bash
+   npm run dev
+   ```
+
+3. Build untuk production:
+   ```bash
+   npm run build
+   ```
+
+## Contoh Penggunaan
+
+- Masukkan pemasukan bulanan pada halaman planner
+- Catat pengeluaran harian dan tagihan wajib
+- Pantau sisa dana dan budget harian di dashboard
+- Tambahkan target tabungan atau investasi untuk melihat progres Anda
+
+## Target Pengguna
+
+Aplikasi ini cocok untuk:
+- individu yang ingin mengatur keuangan pribadi,
+- mahasiswa atau pekerja yang ingin menjaga pengeluaran,
+- siapa pun yang ingin punya dashboard keuangan sederhana namun informatif.
+
+## Catatan
+
+Project ini masih bersifat pengembangan awal dan dapat terus dikembangkan dengan fitur seperti:
+- penyimpanan data lokal yang lebih permanen,
+- integrasi database,
+- export laporan ke PDF/Excel,
+- notifikasi pengingat tagihan.
+

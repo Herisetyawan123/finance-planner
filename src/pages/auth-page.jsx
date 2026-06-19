@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useForm } from "react-hook-form";
@@ -19,8 +19,15 @@ export default function AuthPage() {
     const loginStore = useAuthStore(
         (state) => state.login
     );
+    const token = useAuthStore((state) => state.token);
 
     const [isLogin, setIsLogin] = useState(true);
+
+    useEffect(() => {
+        if (token) {
+            navigate("/", { replace: true });
+        }
+    }, [token, navigate]);
 
     const loginForm = useForm({
         resolver: zodResolver(loginSchema),
@@ -59,6 +66,14 @@ export default function AuthPage() {
                         data.password
                     );
 
+                console.log(response);
+
+                if (!response?.token) {
+                    throw new Error(
+                        "Login gagal: token tidak diterima dari server"
+                    );
+                }
+
                 loginStore(
                     response.user,
                     response.token
@@ -66,7 +81,7 @@ export default function AuthPage() {
 
                 loginForm.reset();
 
-                navigate("/");
+                navigate("/", { replace: true });
             } else {
                 await authService.register({
                     name: data.name,

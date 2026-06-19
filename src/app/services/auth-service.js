@@ -1,59 +1,48 @@
-const USERS_KEY = "finance_planner_users";
+import { request } from "./api-service";
 
 export const authService = {
-    register: async ({name, email, password}) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+    register: async ({ name, email, password }) => {
+        return await request("/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ name, email, password }),
+        });
+    },
 
-        const users = JSON.parse(
-            localStorage.getItem(USERS_KEY) || "[]"
-        );
-        if (users.some((u) => u.email === email)) {
-            throw new Error("Email sudah terdaftar");
-        }
-
-        const newUser = {
-            id: Date.now(),
-            name,
-            email,
-            password,
-        };
-
-        users.push(newUser);
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    login: async (email, password) => {
+        const data = await request("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email, password }),
+        });
 
         return {
-            user: {
-                id: newUser.id,
-                name: newUser.name,
-                email: newUser.email,
-            },
-            token: `dummy-token-${newUser.id}`,
+            user:
+                data.user ||
+                data.data?.user ||
+                null,
+            token:
+                data.token ||
+                data.access_token ||
+                data.data?.token ||
+                data.data?.access_token ||
+                null,
         };
     },
-    login: async (email, password) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
 
-        const users = JSON.parse(
-        localStorage.getItem(USERS_KEY) || "[]"
-        );
-
-        const user = users.find(
-        (u) =>
-            u.email === email &&
-            u.password === password
-        );
-       
-        if (!user) {
-            throw new Error("Email atau password salah");
-        }
-
-        return {
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
+    checkToken: async (token) => {
+        return await request("/auth/check-token", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
             },
-            token: `dummy-token-${user.id}`,
-        };
+        });
+    },
+
+    logout: async (token) => {
+        return await request("/auth/logout", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
     },
 };

@@ -74,3 +74,14 @@ export const fmt = (n) =>
   }).format(n);
 
 export const fmtShort = (n) => { if(n>=1000000) return `Rp${(n/1000000).toFixed(1)}jt`; if(n>=1000) return `Rp${(n/1000).toFixed(0)}rb`; return `Rp${n}`; };
+
+export const fmtDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+};

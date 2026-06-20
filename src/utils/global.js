@@ -64,7 +64,7 @@ export const generateDummyData = () => {
     {id:"tg10", nama:"Kuliah S2", target:150000000, terkumpul:10000000, deadline:"2028-01-01", prioritas:"Rendah"},
   ];
 
-  return { transactions, monthlyPlans, pengeluaranWajib, tabungan, investasi, targets };
+  return { transactions, monthlyPlans, pengeluaranWajib, tabungan, investasi, targets, planningItems: [] };
 };
 export const fmt = (n) =>
   new Intl.NumberFormat("id-ID", {

@@ -15,6 +15,8 @@ function Sidebar({
         totalH,
         darkMode,
         notifCount,
+        dashboardSummary,
+        summaryLoading,
         setActivePage,
         setDarkMode,
         setSidebarOpen
@@ -51,6 +53,13 @@ function Sidebar({
             <div className="text-xs text-gray-400 mb-1 px-2">Sisa Dana Bulan Ini</div>
             <div className={`text-lg font-bold px-2 ${sisaDana>=0?"text-emerald-600 dark:text-emerald-400":"text-red-500"}`}>{fmt(Math.abs(sisaDana))}</div>
             <ProgressBar value={totalP>0?Math.min(100,((totalW+totalH)/totalP)*100):0} color="#10b981" className="mt-2 mx-2"/>
+            {dashboardSummary && !summaryLoading && (
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 px-2 space-y-1">
+                <div>Pendapatan: {fmt(dashboardSummary.income)}</div>
+                <div>Tabungan: {fmt(dashboardSummary.saving)}</div>
+                <div>Investasi: {fmt(dashboardSummary.investment)}</div>
+              </div>
+            )}
         </div>
         <nav className="flex-1 overflow-y-auto p-2">
             {navItems.map(item => {

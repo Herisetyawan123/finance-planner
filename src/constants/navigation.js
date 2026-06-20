@@ -18,11 +18,12 @@ import AIPage from "../pages/ai-page";
 import LaporanPage from "../pages/report-page";
 import KalenderPage from "../pages/calender-page";
 import TargetPage from "../pages/target-page";
+import PerencanaanPage from "../pages/planner-page";
+import IncomePage from "../pages/income-page";
 import InvestasiPage from "../pages/investment-page";
 import TabunganPage from "../pages/savings-page";
 import PengeluaranHarianPage from "../pages/daily-expense-page";
 import PengeluaranWajibPage from "../pages/mandatory-expense-page";
-import PerencanaanPage from "../pages/planner-page";
 
 export const navItems = [
   {
@@ -44,7 +45,7 @@ export const navItems = [
     icon: CircleDollarSign,
     label: "Pemasukan",
     link: "/income",
-    page: PerencanaanPage
+    page: IncomePage
   },
   {
     id: "wajib",

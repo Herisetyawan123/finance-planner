@@ -10,9 +10,12 @@ const Header = ({
   activePage,
   setSidebarOpen,
   notifCount,
-  sisaDana
+  sisaDana,
+  dashboardSummary,
 }) => {
   const token = useAuthStore((state) => state.token)
+  const displayValue = dashboardSummary?.remainingBalance ?? sisaDana;
+  const label = dashboardSummary?.remainingBalance != null ? "Remaining Balance" : "Sisa";
   const logoutStore = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
 
@@ -45,7 +48,7 @@ const Header = ({
             </div>
           )}
           <div className="hidden sm:flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg px-2 py-1">
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Sisa: {fmt(Math.max(0,sisaDana))}</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{label}: {fmt(Math.max(0, displayValue))}</span>
           </div>
           <button
             type="button"

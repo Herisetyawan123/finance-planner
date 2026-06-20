@@ -11,16 +11,23 @@ export default function DashboardPage() {
     data,
     bulan,
     tahun,
+    dashboardSummary,
   } = useOutletContext();
 
   const plan = data.monthlyPlans.find(p=>p.bulan===bulan&&p.tahun===tahun)||data.monthlyPlans[data.monthlyPlans.length-1];
-  const totalPemasukan = (plan?.gajiUtama||0)+(plan?.pendapatanTambahan||0)+(plan?.bonus||0)+(plan?.pendapatanLainnya||0);
+  const localTotalPemasukan = (plan?.gajiUtama||0)+(plan?.pendapatanTambahan||0)+(plan?.bonus||0)+(plan?.pendapatanLainnya||0);
   const txBulan = data.transactions.filter(t=>t.bulan===bulan&&t.tahun===tahun);
-  const totalHarian = txBulan.reduce((s,t)=>s+t.nominal,0);
-  const totalWajib = data.pengeluaranWajib.reduce((s,w)=>s+w.nominal,0);
-  const totalTabungan = data.tabungan.reduce((s,t)=>s+t.saldo,0);
-  const totalInvestasi = data.investasi.reduce((s,i)=>s+i.nilaiSaatIni,0);
-  const sisaDana = totalPemasukan - totalWajib - totalHarian;
+  const localTotalHarian = txBulan.reduce((s,t)=>s+t.nominal,0);
+  const localTotalWajib = data.pengeluaranWajib.reduce((s,w)=>s+w.nominal,0);
+  const localTotalTabungan = data.tabungan.reduce((s,t)=>s+t.saldo,0);
+  const localTotalInvestasi = data.investasi.reduce((s,i)=>s+i.nilaiSaatIni,0);
+
+  const totalPemasukan = dashboardSummary?.income ?? localTotalPemasukan;
+  const totalHarian = dashboardSummary?.dailyExpense ?? localTotalHarian;
+  const totalWajib = dashboardSummary?.mandatoryExpense ?? localTotalWajib;
+  const totalTabungan = dashboardSummary?.saving ?? localTotalTabungan;
+  const totalInvestasi = dashboardSummary?.investment ?? localTotalInvestasi;
+  const sisaDana = dashboardSummary?.remainingBalance ?? (totalPemasukan - totalWajib - totalHarian);
   const today = new Date(); const endOfMonth = new Date(tahun,bulan,0); const sisa = Math.max(1,Math.ceil((endOfMonth-today)/(1000*60*60*24)));
   const budgetHarian = Math.floor(Math.max(0,sisaDana)/sisa);
 
@@ -46,9 +53,23 @@ export default function DashboardPage() {
     }))
   };
 
-  const healthScore = Math.min(100, Math.max(0, Math.round(
-    (sisaDana/totalPemasukan)*40 + (totalTabungan>0?20:0) + (totalInvestasi>0?20:0) + (budgetHarian>50000?20:10)
-  )));
+  const rasioDana =
+    totalPemasukan > 0
+      ? (sisaDana / totalPemasukan) * 40
+      : 0;
+
+  const healthScore = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(
+        rasioDana +
+        (totalTabungan > 0 ? 20 : 0) +
+        (totalInvestasi > 0 ? 20 : 0) +
+        (budgetHarian > 50000 ? 20 : 10)
+      )
+    )
+  );
 
   return (
     <div className="space-y-5">

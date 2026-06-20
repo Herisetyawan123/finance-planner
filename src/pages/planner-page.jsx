@@ -1,28 +1,13 @@
 import React, { useCallback } from 'react';
 import { useBeforeUnload, useOutletContext, unstable_usePrompt } from 'react-router-dom';
 import Card from '../components/cards';
-import { fmt, fmtDate } from '../utils/global';
+import { fmt, fmtDate, bulanNames } from '../utils/global';
 import { useAuthStore } from '../app/store/auth-store';
 import { usePlannerPageState } from '../app/hooks/usePlannerPageState';
 import PlannerNewItemForm from './planner-page/components/PlannerNewItemForm';
 import PlannerItemsTable from './planner-page/components/PlannerItemsTable';
 import PlannerSummaryPanel from './planner-page/components/PlannerSummaryPanel';
 
-const bulanNames = [
-  '',
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
-];
 
 const PerencanaanPage = () => {
   const { data, setData, bulan, setBulan, tahun, setTahun } = useOutletContext();
@@ -81,7 +66,7 @@ const PerencanaanPage = () => {
               onChange={(e) => setBulan(+e.target.value)}
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
             >
-              {bulanNames.slice(1).map((name, index) => (
+              {bulanNames.map((name, index) => (
                 <option key={name} value={index + 1}>{name}</option>
               ))}
             </select>
@@ -103,7 +88,7 @@ const PerencanaanPage = () => {
 
       {isLoading && (
         <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-200">
-          Memuat data perencanaan untuk {bulanNames[bulan]} {tahun}...
+          Memuat data perencanaan untuk {bulanNames[bulan - 1]} {tahun}...
         </div>
       )}
 

@@ -85,3 +85,18 @@ export const fmtDate = (dateString) => {
     year: 'numeric',
   }).format(date);
 };
+
+export const bulanNames = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];

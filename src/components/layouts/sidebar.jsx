@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { fmt } from '../../utils/global';
+import { fmt, bulanNames } from '../../utils/global';
 import ProgressBar from '../bars/progress-bar';
 import { navItems } from '../../constants/navigation';
 import { NavLink } from 'react-router-dom';
@@ -22,22 +22,6 @@ function Sidebar({
         setSidebarOpen
     }) {
 
-  const bulanNames =[
-        "",
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember"
-    ];
-    
     return (
         <aside className={`fixed top-0 left-0 h-full z-30 w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col transition-transform duration-300 ${sidebarOpen?"translate-x-0":"-translate-x-full lg:translate-x-0"}`}>
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
@@ -45,7 +29,7 @@ function Sidebar({
             <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-lg">₽</div>
             <div>
                 <div className="font-bold text-gray-900 dark:text-white text-sm">Finance Planner</div>
-                <div className="text-xs text-gray-400">{bulanNames[bulan]} {tahun}</div>
+                <div className="text-xs text-gray-400">{bulanNames[bulan - 1]} {tahun}</div>
             </div>
             </div>
         </div>

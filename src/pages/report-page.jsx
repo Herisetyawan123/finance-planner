@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
 import Card from '../components/cards';
-import { fmtShort } from '../utils/global';
+import { fmtShort, bulanNames } from '../utils/global';
 import { useOutletContext } from 'react-router-dom';
 
 
 const LaporanPage = () => {
   const {data} = useOutletContext();
   const [period, setPeriod] = useState("bulanan");
-  const bulanNames=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
   const summary = data.monthlyPlans.map(p=>{
     const txM=data.transactions.filter(t=>t.bulan===p.bulan&&t.tahun===p.tahun);
     const pemasukan=(p.gajiUtama||0)+(p.pendapatanTambahan||0)+(p.bonus||0)+(p.pendapatanLainnya||0);
@@ -20,7 +19,7 @@ const LaporanPage = () => {
   const totalW=summary.reduce((s,m)=>s+m.wajib,0);
   const totalS=summary.reduce((s,m)=>s+m.sisa,0);
   const exportCSV=()=>{
-    const rows=[["Bulan","Tahun","Pemasukan","Wajib","Harian","Sisa"],...summary.map(m=>[bulanNames[m.bulan],m.tahun,m.pemasukan,m.wajib,m.harian,m.sisa])];
+    const rows=[["Bulan","Tahun","Pemasukan","Wajib","Harian","Sisa"],...summary.map(m=>[bulanNames[m.bulan - 1],m.tahun,m.pemasukan,m.wajib,m.harian,m.sisa])];
     const csv=rows.map(r=>r.join(",")).join("\n");
     const a=document.createElement("a"); a.href=`data:text/csv,${encodeURIComponent(csv)}`; a.download="laporan-keuangan.csv"; a.click();
   };
@@ -49,7 +48,7 @@ const LaporanPage = () => {
             <tbody>
               {summary.map(m=>(
                 <tr key={`${m.bulan}-${m.tahun}`} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td className="py-2 px-2 text-gray-700 dark:text-gray-300 font-medium">{bulanNames[m.bulan]}</td>
+                  <td className="py-2 px-2 text-gray-700 dark:text-gray-300 font-medium">{bulanNames[m.bulan - 1]}</td>
                   <td className="py-2 px-2 text-emerald-600 dark:text-emerald-400">{fmtShort(m.pemasukan)}</td>
                   <td className="py-2 px-2 text-blue-600 dark:text-blue-400">{fmtShort(m.wajib)}</td>
                   <td className="py-2 px-2 text-amber-600 dark:text-amber-400">{fmtShort(m.harian)}</td>

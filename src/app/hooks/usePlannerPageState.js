@@ -8,22 +8,7 @@ import {
   normalizeBackendPlan,
 } from '../../app/utils/planner-utils';
 import { loadPlannerStorage, savePlannerStorage } from '../../app/utils/planner-storage';
-
-const bulanNames = [
-  '',
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
-];
+import { bulanNames } from '../../utils/global';
 
 const defaultItemForm = {
   type: 'Pengeluaran',
@@ -188,7 +173,7 @@ export const usePlannerPageState = ({ data, setData, bulan, tahun, token }) => {
         total_savings: Number(summary.totalSavings),
         total_investments: Number(summary.totalInvestments),
         remaining_plan: Number(summary.planBalance),
-        notes: form.notes || `Rencana ${bulanNames[bulan]} ${tahun}`,
+        notes: form.notes || `Rencana ${bulanNames[bulan - 1]} ${tahun}`,
         planning_items: currentPlans.map(mapFrontendItemToApi),
       };
 

@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from '../components/cards';
-import { fmt, fmtShort } from '../utils/global';
+import { fmt, fmtShort, bulanNames } from '../utils/global';
 
 const STORAGE_KEY = 'finance_planner_income';
-const bulanNames = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 const loadIncomeStorage = () => {
   try {
@@ -116,7 +115,7 @@ export default function IncomePage() {
           <div>
             <label className="text-xs text-gray-500 block mb-1">Bulan</label>
             <select value={bulan} onChange={(e) => setBulan(Number(e.target.value))} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
-              {bulanNames.slice(1).map((name, index) => (
+              {bulanNames.map((name, index) => (
                 <option key={name} value={index + 1}>{name}</option>
               ))}
             </select>
@@ -154,7 +153,7 @@ export default function IncomePage() {
 
           <div className="rounded-2xl border border-emerald-100 dark:border-emerald-700 p-4 bg-emerald-50 dark:bg-emerald-900/30">
             <div className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] font-semibold mb-2">Ringkasan Bulanan</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">Untuk {bulanNames[bulan]} {tahun}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">Untuk {bulanNames[bulan - 1]} {tahun}</div>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                 <span>Gaji Utama</span>

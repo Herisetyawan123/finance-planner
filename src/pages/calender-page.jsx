@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Card from '../components/cards';
 import Badge from '../components/badge';
 import { useOutletContext } from 'react-router-dom';
+import { bulanNames } from '../utils/global';
 
 
 // ===================== KALENDER =====================
@@ -9,7 +10,6 @@ const KalenderPage = () => {
   const { data } = useOutletContext();
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
-  const bulanNames=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
   const daysInMonth = new Date(year,month+1,0).getDate();
   const firstDay = new Date(year,month,1).getDay();
   const events = {};

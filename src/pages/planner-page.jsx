@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Card from '../components/cards';
+import { request } from '../app/services/api-service';
 import { fmt } from '../utils/global';
-import { useOutletContext } from 'react-router-dom';
+import { useBeforeUnload, useOutletContext, unstable_usePrompt } from 'react-router-dom';
 
 const bulanNames = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
@@ -24,6 +25,7 @@ const PerencanaanPage = () => {
       target: 'Pengeluaran Wajib',
       date: new Date().toISOString().slice(0, 10),
     });
+    const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
         const p = data.monthlyPlans.find(p => p.bulan === bulan && p.tahun === tahun) || {
@@ -37,15 +39,53 @@ const PerencanaanPage = () => {
 
     const planningItems = data.planningItems || [];
     const currentPlans = planningItems.filter(item => item.bulan === bulan && item.tahun === tahun);
-    const totalPlannedIncome = currentPlans.filter(item => item.type === 'Pemasukan').reduce((sum, item) => sum + item.amount, 0);
     const totalPlannedExpense = currentPlans.filter(item => item.type === 'Pengeluaran').reduce((sum, item) => sum + item.amount, 0);
-    const planBalance = totalPlannedIncome - totalPlannedExpense;
-    const totalPlan = (+form.gajiUtama||0)+(+form.pendapatanTambahan||0)+(+form.bonus||0)+(+form.pendapatanLainnya||0);
+    const totalSavings = currentPlans.filter(item => item.type === 'Tabungan').reduce((sum, item) => sum + item.amount, 0);
+    const totalInvestments = currentPlans.filter(item => item.type === 'Investasi').reduce((sum, item) => sum + item.amount, 0);
+    const plannedMainIncome = currentPlans.filter(item => item.type === 'Pemasukan' && item.target === 'Pendapatan Utama').reduce((sum, item) => sum + item.amount, 0);
+    const plannedOtherIncome = currentPlans.filter(item => item.type === 'Pemasukan' && item.target === 'Pendapatan Lainnya').reduce((sum, item) => sum + item.amount, 0);
+    const totalGajiUtamaSummary = (+form.gajiUtama||0) + plannedMainIncome;
+    const totalPendapatanTambahanSummary = plannedOtherIncome;
+    const planBalance = totalGajiUtamaSummary + totalPendapatanTambahanSummary - totalPlannedExpense - totalSavings - totalInvestments;
 
-    const savePlan = () => {
-      const newPlans = data.monthlyPlans.filter(p => !(p.bulan === bulan && p.tahun === tahun));
-      setData(d => ({ ...d, monthlyPlans: [...newPlans, { ...form, bulan, tahun }] }));
-      alert('Data perencanaan berhasil disimpan!');
+    unstable_usePrompt({
+      when: isDirty,
+      message: 'Anda memiliki perubahan yang belum disimpan. Keluar tanpa menyimpan?',
+    });
+
+    useBeforeUnload(
+      useCallback((event) => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = 'Anda memiliki perubahan yang belum disimpan. Jika keluar, rencana tidak akan tersimpan.';
+      }, [isDirty])
+    );
+
+    const savePlan = async () => {
+      try {
+        const newPlans = data.monthlyPlans.filter(p => !(p.bulan === bulan && p.tahun === tahun));
+        const updatedMonthlyPlans = [...newPlans, { ...form, bulan, tahun }];
+        setData(d => ({ ...d, monthlyPlans: updatedMonthlyPlans }));
+
+        const payload = {
+          bulan,
+          tahun,
+          plan: { ...form, bulan, tahun },
+          planningItems: currentPlans,
+          tabungan: data.tabungan || [],
+          investasi: data.investasi || [],
+        };
+
+        await request('/planner', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        setIsDirty(false);
+        alert('Data perencanaan berhasil disimpan ke backend.');
+      } catch (error) {
+        alert(error.message || 'Gagal menyimpan data ke backend.');
+      }
     };
 
     const saveItem = () => {
@@ -67,10 +107,12 @@ const PerencanaanPage = () => {
       };
       setData(d => ({ ...d, planningItems: [item, ...(d.planningItems || [])] }));
       setItemForm({ type: 'Pengeluaran', title: '', amount: '', target: 'Pengeluaran Wajib', date: new Date().toISOString().slice(0, 10) });
+      setIsDirty(true);
     };
 
     const removeItem = (id) => {
       setData(d => ({ ...d, planningItems: (d.planningItems || []).filter(item => item.id !== id) }));
+      setIsDirty(true);
     };
 
     const convertItem = (item) => {
@@ -103,14 +145,17 @@ const PerencanaanPage = () => {
           ];
           setData(d => ({ ...d, transactions: newTx, planningItems: (d.planningItems || []).filter(i => i.id !== item.id) }));
         }
-      } else {
+      } else if (item.type === 'Pemasukan') {
         const existing = data.monthlyPlans.find(p => p.bulan === item.bulan && p.tahun === item.tahun);
         const newPlan = existing
           ? {
               ...existing,
               gajiUtama: item.target === 'Pendapatan Utama'
                 ? (existing.gajiUtama || 0) + item.amount
-                : (existing.pendapatanLainnya || 0) + item.amount,
+                : existing.gajiUtama || 0,
+              pendapatanLainnya: item.target === 'Pendapatan Lainnya'
+                ? (existing.pendapatanLainnya || 0) + item.amount
+                : existing.pendapatanLainnya || 0,
             }
           : {
               bulan: item.bulan,
@@ -118,58 +163,84 @@ const PerencanaanPage = () => {
               gajiUtama: item.target === 'Pendapatan Utama' ? item.amount : 0,
               pendapatanTambahan: 0,
               bonus: 0,
-              pendapatanLainnya: item.target === 'Pendapatan Utama' ? 0 : item.amount,
+              pendapatanLainnya: item.target === 'Pendapatan Lainnya' ? item.amount : 0,
             };
         const newPlans = data.monthlyPlans.filter(p => !(p.bulan === item.bulan && p.tahun === item.tahun));
         setData(d => ({ ...d, monthlyPlans: [...newPlans, newPlan], planningItems: (d.planningItems || []).filter(i => i.id !== item.id) }));
+      } else if (item.type === 'Tabungan') {
+        const newSavings = [
+          {
+            id: `s-${Date.now()}`,
+            nama: item.title,
+            target: item.amount,
+            saldo: 0,
+            targetTanggal: item.date,
+          },
+          ...(data.tabungan || []),
+        ];
+        setData(d => ({ ...d, tabungan: newSavings, planningItems: (d.planningItems || []).filter(i => i.id !== item.id) }));
+      } else if (item.type === 'Investasi') {
+        const newInvest = [
+          {
+            id: `i-${Date.now()}`,
+            jenis: item.title,
+            nama: item.title,
+            modal: item.amount,
+            nilaiSaatIni: item.amount,
+          },
+          ...(data.investasi || []),
+        ];
+        setData(d => ({ ...d, investasi: newInvest, planningItems: (d.planningItems || []).filter(i => i.id !== item.id) }));
       }
+      setIsDirty(true);
     };
 
     return (
-        <div className="space-y-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Perencanaan Bulanan</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Susun rencana pendapatan dan pengeluaran untuk bulan ini, lalu konversi ke data riil.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 w-full lg:w-auto">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Perencanaan Bulanan</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Susun rencana pendapatan dan pengeluaran untuk bulan ini, lalu konversi ke data riil.</p>
+              <label className="text-xs text-gray-500 block mb-1">Bulan</label>
+              <select value={bulan} onChange={e => setBulan(+e.target.value)} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                  {bulanNames.slice(1).map((name, index) => (
+                    <option key={name} value={index + 1}>{name}</option>
+                  ))}
+              </select>
             </div>
-            <div className="grid grid-cols-2 gap-3 w-full lg:w-auto">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Bulan</label>
-                <select value={bulan} onChange={e => setBulan(+e.target.value)} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
-                    {bulanNames.slice(1).map((name, index) => (
-                      <option key={name} value={index + 1}>{name}</option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Tahun</label>
-                <select value={tahun} onChange={e => setTahun(+e.target.value)} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
-                    {[2024, 2025, 2026, 2027].map(y => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Tahun</label>
+              <select value={tahun} onChange={e => setTahun(+e.target.value)} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                  {[2024, 2025, 2026, 2027].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+              </select>
             </div>
           </div>
+        </div>
 
-          <div className="grid gap-5 lg:grid-cols-3">
-            <Card>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Total Rencana Pendapatan</div>
-              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-3">{fmt(totalPlannedIncome)}</div>
-            </Card>
-            <Card>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Total Rencana Pengeluaran</div>
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400 mt-3">{fmt(totalPlannedExpense)}</div>
-            </Card>
-            <Card>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Sisa Rencana</div>
-              <div className={`text-3xl font-bold mt-3 ${planBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{fmt(planBalance)}</div>
-            </Card>
-          </div>
-
+        <div className="grid gap-5 lg:grid-cols-3">
           <Card>
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Buat Rencana Baru</h2>
-            <div className="grid gap-4 lg:grid-cols-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Total Rencana Pendapatan</div>
+            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-3">{fmt(totalGajiUtamaSummary + totalPendapatanTambahanSummary)}</div>
+          </Card>
+          <Card>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Total Rencana Pengeluaran</div>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400 mt-3">{fmt(totalPlannedExpense)}</div>
+          </Card>
+          <Card>
+            <div className="text-sm text-gray-500 dark:text-gray-400">Sisa Rencana</div>
+            <div className={`text-3xl font-bold mt-3 ${planBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{fmt(planBalance)}</div>
+          </Card>
+        </div>
+
+        <Card>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Buat Rencana Baru</h2>
+          <div className="grid gap-4 lg:grid-cols-4">
+
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Jenis</label>
                 <select value={itemForm.type} onChange={e => {
@@ -177,12 +248,14 @@ const PerencanaanPage = () => {
                     setItemForm(prev => ({
                       ...prev,
                       type,
-                      target: type === 'Pemasukan' ? 'Pendapatan Lainnya' : 'Pengeluaran Wajib',
+                      target: type === 'Pemasukan' ? 'Pendapatan Lainnya' : type === 'Tabungan' ? 'Tabungan' : type === 'Investasi' ? 'Investasi' : 'Pengeluaran Wajib',
                       title: type === 'Pemasukan' && prev.target === 'Pendapatan Utama' ? 'Gaji Utama' : prev.title,
                     }));
                   }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
                   <option value="Pengeluaran">Pengeluaran</option>
                   <option value="Pemasukan">Pemasukan</option>
+                  <option value="Tabungan">Tabungan</option>
+                  <option value="Investasi">Investasi</option>
                 </select>
               </div>
               <div>
@@ -214,10 +287,18 @@ const PerencanaanPage = () => {
                       <option value="Pengeluaran Wajib">Pengeluaran Wajib</option>
                       <option value="Pengeluaran Harian">Pengeluaran Harian</option>
                     </>
-                  ) : (
+                  ) : itemForm.type === 'Pemasukan' ? (
                     <>
                       <option value="Pendapatan Utama">Pendapatan Utama</option>
                       <option value="Pendapatan Lainnya">Pendapatan Lainnya</option>
+                    </>
+                  ) : itemForm.type === 'Tabungan' ? (
+                    <>
+                      <option value="Tabungan">Tabungan</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Investasi">Investasi</option>
                     </>
                   )}
                 </select>
@@ -267,34 +348,38 @@ const PerencanaanPage = () => {
             </div>
           </Card>
 
+
           <Card>
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Ringkasan Perencanaan</h2>
             <div className="space-y-3">
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                <span>Total Rencana Pendapatan</span>
-                <span>{fmt(totalPlannedIncome)}</span>
+                <span>Gaji Utama</span>
+                <span>{fmt(totalGajiUtamaSummary)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                <span>Total Rencana Pengeluaran</span>
+                <span>Pendapatan Tambahan</span>
+                <span>{fmt(totalPendapatanTambahanSummary)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>Pengeluaran Total</span>
                 <span>{fmt(totalPlannedExpense)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>Total Tabungan</span>
+                <span>{fmt(totalSavings)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>Total Investasi</span>
+                <span>{fmt(totalInvestments)}</span>
               </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between font-semibold text-gray-900 dark:text-white">
                 <span>Sisa Rencana</span>
                 <span>{fmt(planBalance)}</span>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Data perencanaan ini bisa dikonversi menjadi pengeluaran wajib, pengeluaran harian, atau pendapatan lainnya.</div>
-            </div>
-          </Card>
-
-          <Card>
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Perencanaan Bulanan Saat Ini</h2>
-            <div className="grid gap-3">
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300"><span>Gaji Utama</span><span>{fmt(form.gajiUtama)}</span></div>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300"><span>Pendapatan Tambahan</span><span>{fmt(form.pendapatanTambahan)}</span></div>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300"><span>Bonus</span><span>{fmt(form.bonus)}</span></div>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300"><span>Pendapatan Lainnya</span><span>{fmt(form.pendapatanLainnya)}</span></div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between font-semibold text-gray-900 dark:text-white"><span>Total Perencanaan</span><span>{fmt(totalPlan)}</span></div>
-              <button onClick={savePlan} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">Simpan Perencanaan Bulanan</button>
+              <div className="flex flex-col gap-3 pt-3">
+                <button onClick={savePlan} className="w-full bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 rounded-xl transition-colors text-sm">Simpan Rencana</button>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Data perencanaan ini bisa dikonversi menjadi pengeluaran wajib, pengeluaran harian, tabungan, atau investasi.</div>
             </div>
           </Card>
         </div>
